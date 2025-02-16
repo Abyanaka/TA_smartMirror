@@ -22,9 +22,8 @@ pose = mp_pose.Pose(
 )
 mp_drawing = mp.solutions.drawing_utils
 
-# --- (1) Define scale factor based on known reference ---
-# For example, an object of 165 cm was ~294.46 px tall at the same distance
-SCALE_FACTOR = 165.0 / 294.46  # cm/px
+
+SCALE_FACTOR = 0.6
 
 def calculate_whtr(waist_cm, height_cm):
     """Calculate WHtR given waist in cm and height in cm."""
@@ -41,7 +40,7 @@ def classify_body_type(whtr):
 def stabilize_classification(whtr_values, threshold=0.02):
     avg_whtr = np.mean(whtr_values)
     body_type = classify_body_type(avg_whtr)
-    # Apply threshold to prevent frequent changes
+    
     if len(whtr_values) > 1:
         if abs(whtr_values[-1] - avg_whtr) < threshold:
             return body_type
