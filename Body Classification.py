@@ -23,7 +23,7 @@ pose = mp_pose.Pose(
 mp_drawing = mp.solutions.drawing_utils
 
 
-SCALE_FACTOR = 0.6
+SCALE_FACTOR = 0.45
 
 def calculate_whtr(waist_cm, height_cm):
     """Calculate WHtR given waist in cm and height in cm."""
