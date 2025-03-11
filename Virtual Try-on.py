@@ -61,10 +61,7 @@ view_ctl = vis.get_view_control()
 cam_params = view_ctl.convert_to_pinhole_camera_parameters() 
 
 def compute_garment_transform(landmarks, w, h, garment_mesh):
-    """
-    Compute a simple transform that scales the garment 
-    to match the user's waist width in 2D. Very naive approach.
-    """
+    
     left_hip_x  = landmarks[mp_pose.PoseLandmark.LEFT_HIP].x * w
     right_hip_x = landmarks[mp_pose.PoseLandmark.RIGHT_HIP].x * w
     waist_pixels = abs(left_hip_x - right_hip_x)
@@ -75,7 +72,7 @@ def compute_garment_transform(landmarks, w, h, garment_mesh):
     if mesh_width == 0:
         return np.eye(4)
 
-    scale_factor = waist_cm / mesh_width
+    scale_factor = (waist_cm / mesh_width)*2
 
     center = bbox.get_center()
 
@@ -101,10 +98,6 @@ def apply_transform_to_garment(mesh, transform):
     return mesh_transformed
 
 def overlay_greenscreen(bg_frame, fg_frame):
-    """
-    Overlays fg_frame (with green background) onto bg_frame,
-    both frames must match in size or you do ROI-based overlay.
-    """
     hsv_fg = cv2.cvtColor(fg_frame, cv2.COLOR_BGR2HSV)
 
     lower_green = np.array([50, 150, 50])
