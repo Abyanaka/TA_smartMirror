@@ -2,7 +2,7 @@ import cv2
 import mediapipe as mp
 import numpy as np
 import open3d as o3d
-import torch
+# import torch
 import math
 from cvzone.PoseModule import PoseDetector
 
@@ -16,9 +16,9 @@ pose = mp_pose.Pose(
     min_tracking_confidence=0.5
 )
 
-model = torch.hub.load('ultralytics/yolov5', 'yolov5s', pretrained=True)
-model.conf = 0.5
-model.iou = 0.45
+# model = torch.hub.load('ultralytics/yolov5', 'yolov5s', pretrained=True)
+# model.conf = 0.5
+# model.iou = 0.45
 
 # Baca mesh baju
 garment_mesh = o3d.io.read_triangle_mesh("Baju_2K/Baju_2K.glb")
@@ -53,7 +53,6 @@ garment_anchors_idx = {
 
 def get_garment_anchor_points(mesh, anchor_idx_dict):
     verts = np.asarray(mesh.vertices)
-    print(len(verts))
     p_left_shoulder     = verts[anchor_idx_dict["left_shoulder"]]
     p_right_shoulder    = verts[anchor_idx_dict["right_shoulder"]]
     p_left_elbow        = verts[anchor_idx_dict["left_elbow"]]
@@ -148,7 +147,7 @@ def overlay_greenscreen(bg_frame, fg_frame):
     # Keep only the region from bg where mask=green
     bg_img = cv2.bitwise_and(bg_frame, bg_frame, mask=mask)
     return cv2.add(bg_img, fg_img)
-cap = cv2.VideoCapture(1)
+cap = cv2.VideoCapture(2)
 
 posList = []
 
@@ -276,6 +275,10 @@ while True:
       
         mesh_transformed = o3d.geometry.TriangleMesh(garment_mesh)
         mesh_transformed.transform(T)
+
+        vertices = np.asarray(garment_mesh.vertices) 
+        np.savetxt("vertices.txt", vertices, fmt="%.8f") 
+        print("Vertex coordinates saved to vertices.txt")
         
         # Render di Open3D
         vis.clear_geometries()
