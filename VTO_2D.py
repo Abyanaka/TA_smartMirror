@@ -4,7 +4,7 @@ import numpy as np
 
 # ----- Inisialisasi -----
 # Baca gambar garment (dress) dengan channel alpha (pastikan file memiliki transparansi)
-garment = cv2.imread("Baju 2D/Group 2.png", cv2.IMREAD_UNCHANGED)
+garment = cv2.imread("Baju 2D/DressYellow.png", cv2.IMREAD_UNCHANGED)
 if garment is None:
     raise FileNotFoundError("Garment image not found. Check the path.")
 
@@ -17,13 +17,11 @@ pose = mp_pose.Pose(
 )
 mp_drawing = mp.solutions.drawing_utils
 
-# Buka webcam (sesuaikan indeks kamera jika perlu)
+
 cap = cv2.VideoCapture(2)
 
-# Gunakan scale 1.0 agar tidak ada scaling tambahan pada transformasi
 garment_scale = 1.0
-# Offset vertikal (dalam pixel) untuk menggeser garment ke atas
-offset_y = -25  # negatif untuk naik, sesuaikan nilainya sesuai kebutuhan
+offset_y = -25  
 
 while True:
     ret, frame = cap.read()
