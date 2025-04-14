@@ -2,13 +2,13 @@ import cv2
 import mediapipe as mp
 import numpy as np
 
-# ----- Initialization -----
-# Load the 2D garment image with an alpha channel (ensure the file has transparency)
-garment = cv2.imread("Baju 2D/Group 9.png", cv2.IMREAD_UNCHANGED)
+# ----- Inisialisasi -----
+# Baca gambar garment (dress) dengan channel alpha (pastikan file memiliki transparansi)
+garment = cv2.imread("Baju 2D/Group 2.png", cv2.IMREAD_UNCHANGED)
 if garment is None:
     raise FileNotFoundError("Garment image not found. Check the path.")
 
-# Define MediaPipe Pose
+# Inisialisasi MediaPipe Pose
 mp_pose = mp.solutions.pose
 pose = mp_pose.Pose(
     static_image_mode=False,
@@ -17,74 +17,91 @@ pose = mp_pose.Pose(
 )
 mp_drawing = mp.solutions.drawing_utils
 
-# Open webcam
+# Buka webcam (sesuaikan indeks kamera jika perlu)
 cap = cv2.VideoCapture(2)
 
-# Set your desired garment scaling factor (less than 1 scales down the garment)
-garment_scale = 0.9
+# Gunakan scale 1.0 agar tidak ada scaling tambahan pada transformasi
+garment_scale = 1.0
+# Offset vertikal (dalam pixel) untuk menggeser garment ke atas
+offset_y = -25  # negatif untuk naik, sesuaikan nilainya sesuai kebutuhan
 
 while True:
     ret, frame = cap.read()
     if not ret:
         break
-    frame = cv2.flip(frame, 1)  # mirror image for natural interaction
+
+    # Flip frame secara horizontal agar interaksi lebih natural
+    frame = cv2.flip(frame, 1)
     h, w, _ = frame.shape
 
-    # Convert to RGB and process with MediaPipe Pose
+    # Konversi frame ke RGB lalu proses dengan MediaPipe Pose
     image_rgb = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
     results = pose.process(image_rgb)
 
     if results.pose_landmarks:
-        # (Optional) Draw landmarks on the frame
+        # (Opsional) Gambar landmark pada frame
         mp_drawing.draw_landmarks(frame, results.pose_landmarks, mp_pose.POSE_CONNECTIONS)
 
-        # ----- Extract user anchor points from MediaPipe -----
+        # ----- Ekstrak landmark yang diperlukan -----
         lm = results.pose_landmarks.landmark
-        left_shoulder = np.array([lm[mp_pose.PoseLandmark.LEFT_SHOULDER.value].x * w,
-                                  lm[mp_pose.PoseLandmark.LEFT_SHOULDER.value].y * h], dtype=np.float32)
-        right_shoulder = np.array([lm[mp_pose.PoseLandmark.RIGHT_SHOULDER.value].x * w,
-                                   lm[mp_pose.PoseLandmark.RIGHT_SHOULDER.value].y * h], dtype=np.float32)
-        # Use the midpoint between left and right hip as the bottom anchor
-        left_hip = np.array([lm[mp_pose.PoseLandmark.LEFT_HIP.value].x * w,
-                             lm[mp_pose.PoseLandmark.LEFT_HIP.value].y * h], dtype=np.float32)
-        right_hip = np.array([lm[mp_pose.PoseLandmark.RIGHT_HIP.value].x * w,
-                              lm[mp_pose.PoseLandmark.RIGHT_HIP.value].y * h], dtype=np.float32)
-        
-        bottom_center = ((left_hip + right_hip) / 2) 
 
-        # Original user anchor points (destination points for affine transform)
-        pts_dst = np.float32([left_shoulder, right_shoulder, bottom_center])
-        
-        # ----- Scale down the garment by moving points towards the shoulder center -----
-        center_shoulder = (left_shoulder + right_shoulder) / 2
-        pts_dst_scaled = center_shoulder + garment_scale * (pts_dst - center_shoulder)
-        pts_dst_scaled = np.float32(pts_dst_scaled)  # ensure type is float32
+        # Ambil titik bahu kiri dan kanan
+        left_shoulder = np.array([
+            lm[mp_pose.PoseLandmark.LEFT_SHOULDER.value].x * w,
+            lm[mp_pose.PoseLandmark.LEFT_SHOULDER.value].y * h
+        ], dtype=np.float32)
+        right_shoulder = np.array([
+            lm[mp_pose.PoseLandmark.RIGHT_SHOULDER.value].x * w,
+            lm[mp_pose.PoseLandmark.RIGHT_SHOULDER.value].y * h
+        ], dtype=np.float32)
 
-        # ----- Define garment anchor points (source points) -----
-        garment_h, garment_w = garment.shape[:2]
-        pts_src = np.float32([
-            [garment_w * 0.3, garment_h * 0.3],   # left shoulder on garment
-            [garment_w * 0.7, garment_h * 0.3],   # right shoulder on garment
-            [garment_w * 0.5, garment_h * 0.9]      # bottom center of garment
+        # Ambil titik heel (kaki) sebagai titik bawah garment
+        left_heel = np.array([
+            lm[mp_pose.PoseLandmark.LEFT_HEEL.value].x * w,
+            lm[mp_pose.PoseLandmark.LEFT_HEEL.value].y * h
+        ], dtype=np.float32)
+        right_heel = np.array([
+            lm[mp_pose.PoseLandmark.RIGHT_HEEL.value].x * w,
+            lm[mp_pose.PoseLandmark.RIGHT_HEEL.value].y * h
+        ], dtype=np.float32)
+        bottom_center = (left_heel + right_heel) / 2
+
+        # ----- Tentukan titik tujuan (destination points) -----
+        # Tambahkan offset ke titik bahu agar garment naik (offset_y negatif untuk naik)
+        pts_dst = np.float32([
+            left_shoulder + np.array([0, offset_y]),
+            right_shoulder + np.array([0, offset_y]),
+            bottom_center
         ])
 
-        # Compute the affine transformation matrix from garment to scaled user points
+        # Jika ingin menggunakan scaling tambahan (di sini tidak ada perubahan, scale 1.0)
+        center_shoulder = (left_shoulder + right_shoulder) / 2
+        pts_dst_scaled = center_shoulder + garment_scale * (pts_dst - center_shoulder)
+        pts_dst_scaled = np.float32(pts_dst_scaled)
+
+        # ----- Definisikan titik jangkar garment (source points) -----
+        # Misal asumsikan bagian atas garment (garment image) mewakili bahu di bagian atas gambar
+        garment_h, garment_w = garment.shape[:2]
+        pts_src = np.float32([
+            [garment_w * 0.3, 0],              # Titik atas kiri garment (wakili bahu kiri)
+            [garment_w * 0.7, 0],              # Titik atas kanan garment (wakili bahu kanan)
+            [garment_w * 0.5, garment_h]       # Titik bawah garment (bagian bawah dress)
+        ])
+
+        # ----- Hitung matriks transformasi afine -----
         M = cv2.getAffineTransform(pts_src, pts_dst_scaled)
         
-        # Warp the garment image so it fits onto the user
+        # Warp garment ke ukuran frame sesuai titik-titik tujuan
         warped_garment = cv2.warpAffine(garment, M, (w, h), flags=cv2.INTER_LINEAR, borderMode=cv2.BORDER_TRANSPARENT)
         
-        # ----- Overlay the warped garment onto the frame using its alpha channel -----
+        # ----- Overlay garment ke frame menggunakan alpha channel -----
         if warped_garment.shape[2] == 4:
-            # Separate the BGR and alpha channels
             garment_rgb = warped_garment[:, :, :3]
             alpha_mask = warped_garment[:, :, 3] / 255.0
-            # Blend the garment with the frame based on the alpha channel
             for c in range(3):
                 frame[:, :, c] = (alpha_mask * garment_rgb[:, :, c] +
                                   (1 - alpha_mask) * frame[:, :, c])
         else:
-            # If no alpha channel, do a simple overlay with 50% transparency
             frame = cv2.addWeighted(frame, 1, warped_garment, 0.5, 0)
 
     cv2.imshow("2D Virtual Try-On", frame)
