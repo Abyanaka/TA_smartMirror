@@ -37,10 +37,8 @@ while True:
     results = pose.process(image_rgb)
 
     if results.pose_landmarks:
-        # (Opsional) Gambar landmark pada frame
         mp_drawing.draw_landmarks(frame, results.pose_landmarks, mp_pose.POSE_CONNECTIONS)
 
-        # ----- Ekstrak landmark yang diperlukan -----
         lm = results.pose_landmarks.landmark
 
         # Ambil titik bahu kiri dan kanan
@@ -53,7 +51,6 @@ while True:
             lm[mp_pose.PoseLandmark.RIGHT_SHOULDER.value].y * h
         ], dtype=np.float32)
 
-        # Ambil titik heel (kaki) sebagai titik bawah garment
         left_heel = np.array([
             lm[mp_pose.PoseLandmark.LEFT_HEEL.value].x * w,
             lm[mp_pose.PoseLandmark.LEFT_HEEL.value].y * h
@@ -64,21 +61,18 @@ while True:
         ], dtype=np.float32)
         bottom_center = (left_heel + right_heel) / 2
 
-        # ----- Tentukan titik tujuan (destination points) -----
-        # Tambahkan offset ke titik bahu agar garment naik (offset_y negatif untuk naik)
+        
         pts_dst = np.float32([
             left_shoulder + np.array([0, offset_y]),
             right_shoulder + np.array([0, offset_y]),
             bottom_center
         ])
 
-        # Jika ingin menggunakan scaling tambahan (di sini tidak ada perubahan, scale 1.0)
         center_shoulder = (left_shoulder + right_shoulder) / 2
         pts_dst_scaled = center_shoulder + garment_scale * (pts_dst - center_shoulder)
         pts_dst_scaled = np.float32(pts_dst_scaled)
 
-        # ----- Definisikan titik jangkar garment (source points) -----
-        # Misal asumsikan bagian atas garment (garment image) mewakili bahu di bagian atas gambar
+        
         garment_h, garment_w = garment.shape[:2]
         pts_src = np.float32([
             [garment_w * 0.3, 0],              # Titik atas kiri garment (wakili bahu kiri)
