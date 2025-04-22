@@ -22,7 +22,7 @@ pose = mp_pose.Pose(
 )
 mp_drawing = mp.solutions.drawing_utils
 
-
+#accurate  to 232cm from the camera, 182cm from the table
 SCALE_FACTOR_HEIGHT = 0.45
 SCALE_FACTOR_WAIST = 0.65
 
