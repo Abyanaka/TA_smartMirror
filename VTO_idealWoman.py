@@ -1,7 +1,11 @@
 import cv2
+import textwrap
 import mediapipe as mp
 import numpy as np
 
+icon = cv2.imread("Baju 2D/ideal-woman/full.png", cv2.IMREAD_UNCHANGED)
+if icon is None:
+    raise FileNotFoundError("Icon not found")
 
 shirt = cv2.imread("Baju 2D\ideal-woman/blouse-midpart.png", cv2.IMREAD_UNCHANGED)
 if shirt is None:
@@ -25,11 +29,58 @@ pose = mp_pose.Pose(static_image_mode=False,
                     min_tracking_confidence=0.5)
 mp_drawing = mp.solutions.drawing_utils
 
+icon_scale = 0.15
 shirt_scale = 0.8
 pants_scale = 1.0
 sleeve_scale = 1.0
 
+def roundedRect(img, top_left, bottom_right, color, radius):
+    
+    x1, y1 = top_left
+    x2, y2 = bottom_right
 
+    cv2.rectangle(img, (x1 + radius, y1), (x2 - radius, y2), color, thickness=cv2.FILLED)
+    cv2.rectangle(img, (x1, y1 + radius), (x2, y2 - radius), color, thickness=cv2.FILLED)
+    
+    cv2.circle(img, (x1 + radius, y1 + radius), radius, color, thickness=cv2.FILLED)
+    cv2.circle(img, (x2 - radius, y1 + radius), radius, color, thickness=cv2.FILLED)
+    cv2.circle(img, (x1 + radius, y2 - radius), radius, color, thickness=cv2.FILLED)
+    cv2.circle(img, (x2 - radius, y2 - radius), radius, color, thickness=cv2.FILLED)
+
+def textWrap(frame, text, x, y, max_chars_per_line,
+             font=cv2.FONT_HERSHEY_SIMPLEX, 
+             font_scale=0.5,
+             thickness=1, 
+             color_text=(255, 255, 255), 
+             color_bg=(0, 0, 0),
+             padding=20, 
+             alpha=0.5, 
+             max_lines=5, 
+             radius=20):
+    
+
+    wrapped_lines = textwrap.wrap(text, width=max_chars_per_line)
+    if len(wrapped_lines) > max_lines:
+        wrapped_lines = wrapped_lines[:max_lines]
+    
+    line_sizes = [cv2.getTextSize(line, font, font_scale, thickness)[0] for line in wrapped_lines]
+    text_width = max(size[0] for size in line_sizes)
+    line_height = line_sizes[0][1] 
+    
+    rect_x1 = x - padding
+    rect_y1 = y - line_height - padding
+    rect_x2 = x + text_width + padding
+    rect_y2 = y + len(wrapped_lines) * line_height + padding
+
+    overlay = frame.copy()
+
+    roundedRect(overlay, (rect_x1, rect_y1), (rect_x2, rect_y2), color_bg, radius)
+
+    cv2.addWeighted(overlay, alpha, frame, 1 - alpha, 0, frame)
+
+    for i, line in enumerate(wrapped_lines):
+        line_y = y + i * (line_height + 5)
+        cv2.putText(frame, line, (x, line_y), font, font_scale, color_text, thickness)
 
 def overlay_image(background, foreground):
    
@@ -45,6 +96,11 @@ def overlay_image(background, foreground):
     return background
 
 cap = cv2.VideoCapture(0)
+
+orig_h, orig_w = icon.shape[:2]
+new_h = 100
+new_w = 100
+icon = cv2.resize(icon, (new_h, new_w), interpolation=cv2.INTER_AREA)
 
 def sleeves(frame, sleeve_img, shoulder, elbow, wrist, scale=1.0, offset=np.array([0, 0])):
     h_sleeve, w_sleeve = sleeve_img.shape[:2]
@@ -114,6 +170,31 @@ while True:
 
     image_rgb = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
     results = pose.process(image_rgb)
+
+    x_offset = 500
+    y_offset = 10
+
+    bg_alpha = 0.3
+    overlay = frame.copy()
+    cv2.rectangle(
+        overlay,
+        (x_offset, y_offset),
+        (x_offset + new_w, y_offset + new_h),
+        (255, 255, 255),
+        thickness=cv2.FILLED
+    )
+
+    frame = cv2.addWeighted(overlay, bg_alpha, frame, 1 - bg_alpha, 0)
+    roi = frame[y_offset:y_offset + new_h, x_offset:x_offset + new_w]
+    if icon.shape[2] == 4:
+        icon_rgb = icon[:, :, :3]
+        alpha = icon[:, :, 3] / 255.0
+        for c in range(3):
+            roi[:, :, c] = (alpha * icon_rgb[:, :, c] +
+                            (1 - alpha) * roi[:, :, c])
+        frame[y_offset:y_offset + new_h, x_offset:x_offset + new_w] = roi
+    else:
+        frame[y_offset:y_offset + new_h, x_offset:x_offset + new_w] = icon
 
     if results.pose_landmarks:
 
@@ -230,8 +311,15 @@ while True:
 
         frame = overlay_image(frame, warped_shirt)
 
-    # Display the final augmented frame.
-    cv2.imshow("Virtual Try-On", frame)
+    caption = ("Kamu dengan tubuh ideal memiliki fleksibilitas lebih dalam memilih model pakaian. Namun, tetap disarankan untuk memilih busana yang sesuai dengan aktivitas dan kepribadian. Pakaian yang menonjolkan kelebihan tubuh, seperti dress body fit, blouse, atau celana high waist, dapat menjadi pilihan utama.")
+    
+    x, y = 10, 400
+    max_chars_per_line = 75
+    textWrap(frame, caption, x, y, max_chars_per_line)
+
+    cv2.namedWindow("Frame", cv2.WINDOW_NORMAL)
+    cv2.resizeWindow("Frame", 1200, 2000)
+    cv2.imshow("Frame", frame)
     if cv2.waitKey(1) & 0xFF == ord('q'):
         break
 
