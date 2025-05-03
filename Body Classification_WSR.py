@@ -37,34 +37,36 @@ pose = mp_pose.Pose(
 mp_drawing = mp.solutions.drawing_utils
 
 SCALE_FACTOR_HEIGHT = 0.45
-SCALE_FACTOR_SHOULDER = 0.65
+SCALE_FACTOR_SHOULDER = 0.385  # cm per pixel di bidang bahu
+SCALE_FACTOR_WAIST    = 0.36  # anggap sama untuk horizontal torso
+WAIST_INTERP_FACTOR   = 0.451   # 30% naik dari pinggul ke bahu
 
-def calculate_whtr(shoulder_cm, height_cm):
-    return shoulder_cm / height_cm if height_cm > 0 else 0
+def calculate_wsr(shoulder_cm, waist_cm):
+    return waist_cm / shoulder_cm if height_cm > 0 else 0
 
-def classify_body_type(whtr):
-    if whtr < 0.62:
+def classify_body_type(wsr):
+    if wsr < 0.61:
         return "Underweight"
-    elif 0.62 <= whtr <= 0.72:
+    elif 0.61 <= wsr <= 0.73:
         return "Ideal"
     else:
         return "Overweight"
 
-def stabilize_classification(whtr_values, threshold=0.02):
-    avg_whtr = np.mean(whtr_values)
-    body_type = classify_body_type(avg_whtr)
+def stabilize_classification(wsr_values, threshold=0.02):
+    avg_wsr = np.mean(wsr_values)
+    body_type = classify_body_type(avg_wsr)
 
-    if len(whtr_values) > 1:
-        if abs(whtr_values[-1] - avg_whtr) < threshold:
+    if len(wsr_values) > 1:
+        if abs(wsr_values[-1] - avg_wsr) < threshold:
             return body_type
     return body_type
 
 cap = cv2.VideoCapture(0)
 
-cv2.namedWindow("Virtual Try-On", cv2.WND_PROP_FULLSCREEN)
-cv2.setWindowProperty("Virtual Try-On", cv2.WND_PROP_FULLSCREEN, cv2.WINDOW_FULLSCREEN)
+# cv2.namedWindow("Virtual Try-On", cv2.WND_PROP_FULLSCREEN)
+# cv2.setWindowProperty("Virtual Try-On", cv2.WND_PROP_FULLSCREEN, cv2.WINDOW_FULLSCREEN)
 
-whtr_values = []
+wsr_values = []
 
 while cap.isOpened():
     ret, frame = cap.read()
@@ -92,39 +94,50 @@ while cap.isOpened():
 
         left_shoulder_pixel_x = landmarks[mp_pose.PoseLandmark.LEFT_SHOULDER].x * w
         right_shoulder_pixel_x = landmarks[mp_pose.PoseLandmark.RIGHT_SHOULDER].x * w
+        shoulder_pixels = abs(left_shoulder_pixel_x - right_shoulder_pixel_x)
+
+        left_hip_pixel_x  = landmarks[mp_pose.PoseLandmark.LEFT_HIP].x  * w
+        right_hip_pixel_x = landmarks[mp_pose.PoseLandmark.RIGHT_HIP].x * w
+        lhs = left_hip_pixel_x + WAIST_INTERP_FACTOR * (left_shoulder_pixel_x - left_hip_pixel_x)
+        rhs = right_hip_pixel_x + WAIST_INTERP_FACTOR * (right_shoulder_pixel_x - right_hip_pixel_x)
+        waist_pixels = abs(lhs - rhs)
 
         nose_pixel_y = landmarks[mp_pose.PoseLandmark.NOSE].y * h
         left_heel_pixel_y = landmarks[mp_pose.PoseLandmark.LEFT_HEEL].y * h
         right_heel_pixel_y = landmarks[mp_pose.PoseLandmark.RIGHT_HEEL].y * h
-
-        shoulder_pixels = abs(left_shoulder_pixel_x - right_shoulder_pixel_x)
-
         avg_heel_y = (left_heel_pixel_y + right_heel_pixel_y) / 2.0
         height_pixels = abs(nose_pixel_y - avg_heel_y)
 
-        shoulder_cm = math.pi * shoulder_pixels * SCALE_FACTOR_SHOULDER * 0.63
+
+
+        shoulder_cm = math.pi * shoulder_pixels * SCALE_FACTOR_SHOULDER
+        waist_cm  = math.pi * waist_pixels  * SCALE_FACTOR_WAIST
         height_cm = height_pixels * SCALE_FACTOR_HEIGHT
 
         print(f"Shoulder: {shoulder_cm:.2f} cm, Height: {height_cm:.2f} cm")
 
-        whtr = calculate_whtr(shoulder_cm, height_cm)
-        whtr_values.append(whtr)
+        wsr = calculate_wsr(shoulder_cm, waist_cm)
+        wsr_values.append(wsr)
 
-        if len(whtr_values) > 10:
-            whtr_values.pop(0)
+        if len(wsr_values) > 10:
+            wsr_values.pop(0)
 
-        body_type = stabilize_classification(whtr_values)
+        body_type = stabilize_classification(wsr_values)
 
         cv2.putText(image, f"Shoulder Type: {body_type}", (10, 30), 
                     cv2.FONT_HERSHEY_SIMPLEX, 0.5, (255, 0, 0), 2)
-        cv2.putText(image, f"Shoulder/Height Ratio: {whtr:.2f}", (10, 70), 
+        cv2.putText(image, f"Shoulder/Height Ratio: {wsr:.2f}", (10, 70), 
                     cv2.FONT_HERSHEY_SIMPLEX, 0.5, (255, 0, 0), 2)
         cv2.putText(image, f"Height: {height_cm:.2f} cm", (10, 100), 
                     cv2.FONT_HERSHEY_SIMPLEX, 0.5, (255, 0, 0), 2)
         cv2.putText(image, f"Shoulder: {shoulder_cm:.2f} cm", (10, 130), 
                     cv2.FONT_HERSHEY_SIMPLEX, 0.5, (255, 0, 0), 2)
+        cv2.putText(image, f"Waist {waist_cm:.2f}", (10, 160), 
+                    cv2.FONT_HERSHEY_SIMPLEX, 0.5, (0, 0, 255), 2)
 
-    cv2.imshow("Virtual Try-On", image)
+    cv2.namedWindow("Frame", cv2.WINDOW_NORMAL)
+    cv2.resizeWindow("Frame", 1200, 2000)
+    cv2.imshow("Frame", image)
 
     if cv2.waitKey(1) & 0xFF == ord('q'):
         break

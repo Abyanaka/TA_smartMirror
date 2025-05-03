@@ -24,7 +24,8 @@ mp_drawing = mp.solutions.drawing_utils
 
 #accurate  to 232cm from the camera, 182cm from the table
 SCALE_FACTOR_HEIGHT = 0.45
-SCALE_FACTOR_WAIST = 0.65
+SCALE_FACTOR_WAIST    = 0.36 
+WAIST_INTERP_FACTOR   = 0.451
 
 def calculate_whtr(waist_cm, height_cm):
     return waist_cm / height_cm if height_cm > 0 else 0
@@ -46,10 +47,8 @@ def stabilize_classification(whtr_values, threshold = 0.02):
             return body_type
     return body_type
 
-cap = cv2.VideoCapture(2)  
+cap = cv2.VideoCapture(0)  
 
-cv2.namedWindow("Virtual Try-On", cv2.WND_PROP_FULLSCREEN)
-cv2.setWindowProperty("Virtual Try-On", cv2.WND_PROP_FULLSCREEN, cv2.WINDOW_FULLSCREEN)
 
 whtr_values = []
 
@@ -79,21 +78,25 @@ while cap.isOpened():
 
         landmarks = results.pose_landmarks.landmark
 
+        left_shoulder_pixel_x = landmarks[mp_pose.PoseLandmark.LEFT_SHOULDER].x * w
+        right_shoulder_pixel_x = landmarks[mp_pose.PoseLandmark.RIGHT_SHOULDER].x * w
+        shoulder_pixels = abs(left_shoulder_pixel_x - right_shoulder_pixel_x)
+
         left_hip_pixel_x  = landmarks[mp_pose.PoseLandmark.LEFT_HIP].x  * w
         right_hip_pixel_x = landmarks[mp_pose.PoseLandmark.RIGHT_HIP].x * w
+        lhs = left_hip_pixel_x + WAIST_INTERP_FACTOR * (left_shoulder_pixel_x - left_hip_pixel_x)
+        rhs = right_hip_pixel_x + WAIST_INTERP_FACTOR * (right_shoulder_pixel_x - right_hip_pixel_x)
+        waist_pixels = abs(lhs - rhs)
 
-        nose_pixel_y      = landmarks[mp_pose.PoseLandmark.NOSE].y      * h
+        nose_pixel_y = landmarks[mp_pose.PoseLandmark.NOSE].y * h
         left_heel_pixel_y = landmarks[mp_pose.PoseLandmark.LEFT_HEEL].y * h
-        right_heel_pixel_y= landmarks[mp_pose.PoseLandmark.RIGHT_HEEL].y* h
-
-        waist_pixels = (abs(left_hip_pixel_x - right_hip_pixel_x))
-
+        right_heel_pixel_y = landmarks[mp_pose.PoseLandmark.RIGHT_HEEL].y * h
         avg_heel_y = (left_heel_pixel_y + right_heel_pixel_y) / 2.0
         height_pixels = abs(nose_pixel_y - avg_heel_y)
 
-        waist_cm  = math.pi * waist_pixels  * SCALE_FACTOR_WAIST * 0.63 #bahas di bab 3
-        height_cm = height_pixels * SCALE_FACTOR_HEIGHT
 
+        waist_cm  = math.pi * waist_pixels  * SCALE_FACTOR_WAIST
+        height_cm = height_pixels * SCALE_FACTOR_HEIGHT
 
         print(f"Waist: {waist_cm:.2f} cm, Height: {height_cm:.2f} cm")
 
@@ -114,7 +117,9 @@ while cap.isOpened():
         cv2.putText(image, f"Waist {waist_cm:.2f}", (10, 130), 
                     cv2.FONT_HERSHEY_SIMPLEX, 0.5, (0, 0, 255), 2)
 
-    cv2.imshow("Virtual Try-On", image)
+    cv2.namedWindow("Frame", cv2.WINDOW_NORMAL)
+    cv2.resizeWindow("Frame", 1200, 2000)
+    cv2.imshow("Frame", image)
 
     if cv2.waitKey(1) & 0xFF == ord('q'):
         break
