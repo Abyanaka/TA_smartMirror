@@ -12,10 +12,7 @@ camera_matrix = np.array([
 
 dist_coeffs = np.array([[ 1.57437343e-01, -8.92899556e-01, -4.33763266e-03, 
                          -5.90548476e-04,  1.02831667e+00 ]])
-import cv2
-import mediapipe as mp
-import numpy as np
-import math
+
 
 # Camera calibration data
 camera_matrix = np.array([
@@ -37,17 +34,17 @@ pose = mp_pose.Pose(
 mp_drawing = mp.solutions.drawing_utils
 
 SCALE_FACTOR_HEIGHT = 0.45
-SCALE_FACTOR_SHOULDER = 0.385  # cm per pixel di bidang bahu
-SCALE_FACTOR_WAIST    = 0.36  # anggap sama untuk horizontal torso
+SCALE_FACTOR_SHOULDER = 0.38  # cm per pixel di bidang bahu
+SCALE_FACTOR_WAIST    = 0.365  # anggap sama untuk horizontal torso
 WAIST_INTERP_FACTOR   = 0.451   # 30% naik dari pinggul ke bahu
 
 def calculate_wsr(shoulder_cm, waist_cm):
     return waist_cm / shoulder_cm if height_cm > 0 else 0
 
 def classify_body_type(wsr):
-    if wsr < 0.61:
+    if wsr < 0.62:
         return "Underweight"
-    elif 0.61 <= wsr <= 0.73:
+    elif 0.62 <= wsr <= 0.72:
         return "Ideal"
     else:
         return "Overweight"

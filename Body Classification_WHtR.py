@@ -33,7 +33,7 @@ def calculate_whtr(waist_cm, height_cm):
 def classify_body_type(whtr):
     if whtr < 0.4:
         return "Underweight"
-    elif 0.4 <= whtr <= 0.5:
+    elif 0.4 <= whtr <= 0.49:
         return "Ideal"
     else:
         return "Overweight"
