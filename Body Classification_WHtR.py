@@ -109,16 +109,16 @@ while cap.isOpened():
         body_type = stabilize_classification(whtr_values)
 
         cv2.putText(image, f"Body Type: {body_type}", (10, 30), 
-                    cv2.FONT_HERSHEY_SIMPLEX, 0.5, (0, 0, 255), 2)
+                    cv2.FONT_HERSHEY_SIMPLEX, 0.5, (255, 0, 0), 2)
         cv2.putText(image, f"WHtR: {whtr:.2f}", (10, 70), 
-                    cv2.FONT_HERSHEY_SIMPLEX, 0.5, (0, 0, 255), 2)
+                    cv2.FONT_HERSHEY_SIMPLEX, 0.5, (255, 0, 0), 2)
         cv2.putText(image, f"Height: {height_cm:.2f}", (10, 100), 
-                    cv2.FONT_HERSHEY_SIMPLEX, 0.5, (0, 0, 255), 2)
+                    cv2.FONT_HERSHEY_SIMPLEX, 0.5, (255, 0, 0), 2)
         cv2.putText(image, f"Waist {waist_cm:.2f}", (10, 130), 
-                    cv2.FONT_HERSHEY_SIMPLEX, 0.5, (0, 0, 255), 2)
+                    cv2.FONT_HERSHEY_SIMPLEX, 0.5, (255, 0, 0), 2)
 
     cv2.namedWindow("Frame", cv2.WINDOW_NORMAL)
-    cv2.resizeWindow("Frame", 1200, 2000)
+    cv2.resizeWindow("Frame", 1080, 1920)
     cv2.imshow("Frame", image)
 
     if cv2.waitKey(1) & 0xFF == ord('q'):

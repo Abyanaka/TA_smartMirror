@@ -31,7 +31,7 @@ mp_drawing = mp.solutions.drawing_utils
 
 icon_scale = 0.15
 shirt_scale = 0.9
-pants_scale = 1.5
+pants_scale = 1.0
 sleeve_scale = 1.0
 
 def roundedRect(img, top_left, bottom_right, color, radius):
@@ -292,8 +292,8 @@ while True:
         
         pants_h, pants_w = pants.shape[:2]
         pts_src_pants = np.float32([
-            [pants_w * 0.4, 0],        
-            [pants_w * 0.6, 0],       
+            [pants_w * 0.3, 0],        
+            [pants_w * 0.7, 0],       
             [pants_w * 0.5, pants_h]   
         ])
 
