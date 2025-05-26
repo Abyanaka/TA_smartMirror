@@ -1,7 +1,6 @@
 import cv2
 import mediapipe as mp
 import numpy as np
-import math
 import subprocess
 import sys
 
@@ -28,20 +27,16 @@ def calculate_whtr(waist_cm, height_cm):
     return waist_cm / height_cm if height_cm > 0 else 0
 
 def classify_body_type(whtr):
-    if whtr <= 0.42:
+    if whtr < 0.43:
         return "Underweight"
-    elif 0.43 <= whtr <= 0.50:
+    elif 0.43 <= whtr <= 0.51:
         return "Ideal"
     else:
         return "Overweight"
 
-def stabilize_classification(wsr_values, threshold=0.02):
+def stabilize_classification(wsr_values):
     avg_wsr = np.mean(wsr_values)
     body_type = classify_body_type(avg_wsr)
-
-    if len(wsr_values) > 1:
-        if abs(wsr_values[-1] - avg_wsr) < threshold:
-            return body_type
     return body_type
 
 
@@ -76,7 +71,7 @@ def main():
         cv2.putText(frame, "Press 'q' = Quit", 
                     (20,110),cv2.FONT_HERSHEY_SIMPLEX, 1, (255, 0, 0), 3)
         cv2.namedWindow("Select Gender", cv2.WINDOW_NORMAL)
-        cv2.resizeWindow("Select Gender", 1080, 1920)
+        cv2.resizeWindow("Select Gender", 1200, 2000)
         cv2.imshow("Select Gender", frame)
         key = cv2.waitKey(1) & 0xFF
         if key == ord('f'):
@@ -118,7 +113,7 @@ def main():
             heel_y = 0.5*(lm[mp_pose.PoseLandmark.LEFT_HEEL].y + lm[mp_pose.PoseLandmark.RIGHT_HEEL].y)*h
             height_px = abs(nose_y - heel_y)
 
-            waist_cm  = math.pi * waist_px  * SCALE_FACTOR_WAIST
+            waist_cm  = np.pi * waist_px  * SCALE_FACTOR_WAIST
             height_cm =      height_px * SCALE_FACTOR_HEIGHT
 
             whtr = calculate_whtr(waist_cm, height_cm)
@@ -133,6 +128,9 @@ def main():
                         cv2.FONT_HERSHEY_SIMPLEX, 0.8, (0, 0, 255), 3)
             cv2.putText(img, "Press 's' to Save & Launch VTO", (20,110),
                         cv2.FONT_HERSHEY_SIMPLEX, 1, (0, 0, 255), 3)
+            
+                   
+        # print(f"waist: {waist_cm:.2f} cm, Height: {height_cm:.2f} cm")
 
         cv2.imshow("Classification", img)
         key = cv2.waitKey(1) & 0xFF
@@ -145,7 +143,7 @@ def main():
     cap.release()
     cv2.destroyAllWindows()
 
-    # 3.3 Panggil VTO sesuai hasil :contentReference[oaicite:10]{index=10}:contentReference[oaicite:11]{index=11}
+    
     launch_vto(gender, selected_type)
 
 

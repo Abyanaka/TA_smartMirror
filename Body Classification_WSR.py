@@ -49,7 +49,7 @@ def classify_body_type(wsr):
     else:
         return "Overweight"
 
-def stabilize_classification(wsr_values, threshold=0.02):
+def stabilize_classification(wsr_values, threshold=0.3):
     avg_wsr = np.mean(wsr_values)
     body_type = classify_body_type(avg_wsr)
 
@@ -133,7 +133,7 @@ while cap.isOpened():
                     cv2.FONT_HERSHEY_SIMPLEX, 1, (255, 0, 0), 3)
 
     cv2.namedWindow("Frame", cv2.WINDOW_NORMAL)
-    cv2.resizeWindow("Frame", 1080, 1920)
+    cv2.resizeWindow("Frame", 1000, 800)
     cv2.imshow("Frame", image)
 
     if cv2.waitKey(1) & 0xFF == ord('q'):

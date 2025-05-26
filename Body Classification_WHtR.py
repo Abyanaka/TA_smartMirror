@@ -38,7 +38,7 @@ def classify_body_type(whtr):
     else:
         return "Overweight"
 
-def stabilize_classification(whtr_values, threshold = 0.02):
+def stabilize_classification(whtr_values, threshold = 0.5):
     avg_whtr = np.mean(whtr_values)
     body_type = classify_body_type(avg_whtr)
     

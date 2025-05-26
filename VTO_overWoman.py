@@ -317,7 +317,7 @@ while True:
     textWrap(frame, caption, x, y, max_chars_per_line)
 
     cv2.namedWindow("Frame", cv2.WINDOW_NORMAL)
-    cv2.resizeWindow("Frame", 1200, 2000)
+    cv2.resizeWindow("Frame", 1080, 1920)
     cv2.imshow("Frame", frame)
     if cv2.waitKey(1) & 0xFF == ord('q'):
         break

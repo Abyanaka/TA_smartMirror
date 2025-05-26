@@ -292,7 +292,7 @@ while True:
 
     # Display the final augmented frame.
     cv2.namedWindow("Frame", cv2.WINDOW_NORMAL)
-    cv2.resizeWindow("Frame", 1200, 2000)
+    cv2.resizeWindow("Frame",1200, 2000)
     cv2.imshow("Frame", frame)
     if cv2.waitKey(1) & 0xFF == ord('q'):
         break

@@ -1,7 +1,6 @@
 import cv2
 import mediapipe as mp
 import numpy as np
-import math
 import subprocess
 import sys
 
@@ -31,19 +30,15 @@ def calculate_wsr(shoulder_cm, waist_cm):
 
 def classify_body_type(wsr):
     if wsr < 0.62:
-        return "Underweight"
-    elif 0.62 <= wsr <= 0.72:
+        return "Not-Ideal"
+    elif 0.62 <= wsr <= 0.73:
         return "Ideal"
     else:
-        return "Overweight"
+        return "Not-Ideal"
 
-def stabilize_classification(wsr_values, threshold=0.02):
+def stabilize_classification(wsr_values):
     avg_wsr = np.mean(wsr_values)
     body_type = classify_body_type(avg_wsr)
-
-    if len(wsr_values) > 1:
-        if abs(wsr_values[-1] - avg_wsr) < threshold:
-            return body_type
     return body_type
 
 
@@ -70,7 +65,8 @@ def main():
 
     while True:
         ret, frame = cap.read()
-        if not ret: break
+        if not ret: 
+            break
         frame = cv2.flip(frame, 1)
         cv2.putText(frame, "Press 'f' = Woman",
                     (20,50), cv2.FONT_HERSHEY_SIMPLEX, 1, (255,0,0), 3)
@@ -97,9 +93,10 @@ def main():
     selected_type = None
     while True:
         ret, frame = cap.read()
-        if not ret: break
+        if not ret: 
+            break
         frame = cv2.flip(frame, 1)
-
+        
 
         und = cv2.undistort(frame, camera_matrix, dist_coeffs)
         rgb = cv2.cvtColor(und, cv2.COLOR_BGR2RGB)
@@ -118,14 +115,15 @@ def main():
             lw = lhx + WAIST_INTERP_FACTOR*(lsx - lhx)
             rw = rhx + WAIST_INTERP_FACTOR*(rsx - rhx)
             waist_px = abs(lw - rw)
+
             shoulder_px = abs(lsx - rsx)
 
             nose_y = lm[mp_pose.PoseLandmark.NOSE].y * h
             heel_y = 0.5*(lm[mp_pose.PoseLandmark.LEFT_HEEL].y + lm[mp_pose.PoseLandmark.RIGHT_HEEL].y)*h
             height_px = abs(nose_y - heel_y)
 
-            shoulder_cm = math.pi * shoulder_px * SCALE_FACTOR_SHOULDER
-            waist_cm  = math.pi * waist_px  * SCALE_FACTOR_WAIST
+            shoulder_cm = np.pi * shoulder_px * SCALE_FACTOR_SHOULDER
+            waist_cm  = np.pi * waist_px  * SCALE_FACTOR_WAIST
             height_cm = height_px * SCALE_FACTOR_HEIGHT
 
             wsr = calculate_wsr(shoulder_cm, waist_cm)
@@ -141,7 +139,7 @@ def main():
                         cv2.FONT_HERSHEY_SIMPLEX, 0.8, (0, 0, 255), 3)
             cv2.putText(img, "Press 's' to Save & Launch VTO", (20,110),
                         cv2.FONT_HERSHEY_SIMPLEX, 1, (0, 0, 255), 3)
-
+            
         cv2.imshow("Classification", img)
         key = cv2.waitKey(1) & 0xFF
         if key == ord('s'):
